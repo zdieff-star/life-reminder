@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>每日人生提醒</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  background:#f7f8fa;
+  color:#222;
+  font-size:15px;
+  padding:16px;
+  max-width:640px;
+  margin:0 auto;
+  -webkit-tap-highlight-color:transparent;
+}
+h2{
+  font-size:17px;
+  margin-bottom:12px;
+  color:#1f2937;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+#dateInfo{
+  font-size:13px;color:#6b7280;font-weight:normal;
+}
+.item{
+  background:#fff;
+  border-radius:10px;
+  padding:12px 14px;
+  margin-bottom:8px;
+  border:1px solid #e5e7eb;
+  cursor:pointer;
+  transition:background .15s;
+}
+.item:active{background:#eef2f7;}
+.meta{
+  font-size:11px;color:#78716c;margin-top:6px;
+}
+.btn-wrap{margin-bottom:14px;display:flex;align-items:center;gap:10px;}
+button{
+  padding:7px 14px;font-size:14px;border-radius:8px;
+  border:1px solid #cbd5e1;background:#fff;cursor:pointer;
+}
+button:active{background:#e2e8f0;}
+.tip-copy{font-size:12px;color:#059669;height:18px;}
+</style>
+</head>
+<body>
+<div>
+  <h2>📌 每日人生提醒 <span id="dateInfo"></span></h2>
+  <div class="btn-wrap">
+    <button onclick="renderList()">🔄 换一批15条</button>
+    <span class="tip-copy" id="copyTip"></span>
+  </div>
+  <div id="container"></div>
+  <p style="font-size:11px;color:#9ca3af;margin-top:16px;line-height:1.6;">
+    内容摘自开源文档《HowToLiveBetter》，仅作个人提醒，不替代医疗/法律专业建议。<br>
+    点击任意一条即可复制全文。
+  </p>
+</div>
+
+<script>
+const allTips = [
+  {text:"上车无论前排后排都系安全带。车祸时前排致命风险下降45%，后排同样必须系。",meta:"证据A｜不要早死"},
+  {text:"骑摩托/电动车务必戴好头盔并扣紧卡扣，不要挂在车把上。死亡风险下降约42%。",meta:"证据A｜不要早死"},
+  {text:"家中安装烟雾报警器；冬天烧煤燃气取暖加装一氧化碳报警器。住宅火灾死亡风险下降约60%。",meta:"证据B｜不要早死"},
+  {text:"不采、不买、不吃野生蘑菇。银针试毒、虫子吃过、颜色鲜艳等鉴别方法全部无效。",meta:"证据A｜不要早死"},
+  {text:"电动自行车不要推进楼道、电梯，禁止室内充电，去楼下集中充电点。",meta:"证据A｜不要早死"},
+  {text:"定期量血压；确诊高血压遵医嘱吃药，不要无症状就擅自停药。血压每降10mmHg，总死亡降13%。",meta:"证据A｜不要早死"},
+  {text:"35岁后超重，记得筛查空腹血糖；结果正常每三年复查一次。",meta:"证据A｜不要早死"},
+  {text:"女性越早接种HPV疫苗越好；打完疫苗依然要定期做宫颈癌筛查。",meta:"证据A｜不要早死"},
+  {text:"40岁起女性每两年做一次乳腺癌钼靶筛查。",meta:"证据A｜不要早死"},
+  {text:"45-50岁开始做结直肠癌筛查，粪便隐血或者肠镜二选一。",meta:"证据A｜不要早死"},
+  {text:"心血管病人、老年人每年秋天接种流感疫苗。心梗后打流感疫苗可显著降低短期死亡。",meta:"证据A｜不要早死"},
+  {text:"查乙肝两对半，没有抗体就接种乙肝疫苗。",meta:"证据A｜不要早死"},
+  {text:"被铁钉、泥土扎伤，当天就医处理，咨询破伤风是否需要加强。",meta:"证据B｜不要早死"},
+  {text:"肉眼可见血尿，哪怕不痛、第二天不出血，也要就医检查。",meta:"证据B｜不要早死"},
+  {text:"65岁以上女性做骨密度检查；确诊骨质疏松遵医嘱用药，不要只靠补钙。",meta:"证据A｜不要早死"},
+  {text:"戒烟，越早越好。40岁前戒烟，可以消除绝大多数吸烟带来的死亡风险。",meta:"证据A｜不要慢慢死"},
+  {text:"不要在家、车内抽烟，二手烟会显著提升心脑血管疾病风险。",meta:"证据A｜不要慢慢死"},
+  {text:"戒烟不要硬扛，可以使用戒烟药、尼古丁贴片，成功率可以翻倍。",meta:"证据A｜不要慢慢死"},
+  {text:"不要喝含糖饮料；换成无糖代糖饮料同样没有明确保护收益，优先喝白水、淡茶。",meta:"证据A｜不要慢慢死"},
+  {text:"不要嚼槟榔，会提升癌症和全因死亡风险。",meta:"证据A｜不要慢慢死"},
+  {text:"家里高危老人、中风病史人群，可以换成低钠盐；肾病、保钾药物使用者要咨询医生。",meta:"证据A｜不要慢慢死"},
+  {text:"认真刷牙，每天清洁牙缝；牙齿大量脱落和老年人死亡风险升高相关。",meta:"证据B｜不要慢慢死"},
+  {text:"每天走到7000-8000步，不必硬冲一万步。60岁以上6000-8000步就足够。",meta:"证据A｜不要慢慢死"},
+  {text:"每周少量力量训练30-60分钟；有氧+力量组合收益更高。",meta:"证据A｜不要慢慢死"},
+  {text:"不要长时间久坐；每天保持一定中等强度活动可以抵消大部分久坐伤害。",meta:"证据A｜不要慢慢死"},
+  {text:"少吃加工肉：火腿、香肠、培根、午餐肉。",meta:"证据A｜不要慢慢死"},
+  {text:"少喝酒，最稳妥选择是不喝酒；不存在安全有益的饮酒量。",meta:"证据A｜不要慢慢死"},
+  {text:"长期大量喝酒，不要自行硬戒断，戒断反应存在致命风险，前往医院就诊。",meta:"证据B｜不要慢慢死"},
+  {text:"每天一小把原味坚果，对长期生存有正向关联。",meta:"证据A｜不要慢慢死"},
+  {text:"部分主食替换成全谷物（燕麦、糙米），不必100%替换。",meta:"证据A｜不要慢慢死"},
+  {text:"不要喝滚烫饮品；超过65℃热饮属于很可能致癌物，放凉再喝。",meta:"证据A｜不要慢慢死"},
+  {text:"炒菜煎炸务必全程打开抽油烟机。不吸烟女性，不开抽油烟机肺癌风险成倍上升。",meta:"证据B｜不要慢慢死"},
+  {text:"优先买带SC编号预包装食用油，谨慎购买小作坊散装自榨花生油。",meta:"证据B｜不要慢慢死"},
+  {text:"每晚尽量睡7小时左右；长期只睡6小时，认知能力会持续受损，自己却感觉不到。",meta:"证据A｜不要浪费精力"},
+  {text:"固定起床时间，周末不要疯狂睡懒觉，减少社会时差。",meta:"证据B｜不要浪费精力"},
+  {text:"下午两点以后不再摄入咖啡因，咖啡因会悄悄压缩夜间睡眠，自己难以察觉。",meta:"证据A｜不要浪费精力"},
+  {text:"消息邮件改为每天批量处理，不要随时点开查看，降低心理压力。",meta:"证据B｜不要浪费精力"},
+  {text:"深度思考工作时，隔绝碎片化打断；短暂打断也会大幅提升出错率。",meta:"证据B｜不要浪费精力"},
+  {text:"尽量不要多任务来回切换；频繁切换任务反应变慢、更容易出错。",meta:"证据B｜不要浪费精力"},
+  {text:"睡前一小时尽量少用发光屏幕，手机不要带进卧室。",meta:"证据B｜不要浪费精力"},
+  {text:"重大决定不要深夜做；缺觉时人更容易选择高风险选项。",meta:"证据B｜不要浪费精力"},
+  {text:"下午犯困，小睡10分钟；不要睡半小时以上，睡久醒来出现睡眠惰性，状态反而变差。",meta:"证据B｜不要浪费精力"},
+  {text:"反刍反复回想糟心事的时候，起身做动手的体力活，停止原地内耗。",meta:"证据B｜不要浪费精力"},
+  {text:"悲观念头把它当做心理症状，不要当成客观事实；不必强行正能量。",meta:"证据B｜不要浪费精力"},
+  {text:"远离消耗你的人际关系，学会合理拒绝请求。",meta:"证据C｜不要浪费精力"},
+  {text:"生气优先离场；硬压制情绪效果很差，报复并不会真正翻篇。",meta:"证据B｜不要浪费精力"},
+  {text:"情绪低落优先：运动、晒太阳、按时睡觉；严重时拨打心理援助热线12356。",meta:"证据A｜不要浪费精力"},
+  {text:"不要频繁刷社交平台同龄人动态；向上比较会加重焦虑、低自尊。",meta:"证据A｜不要浪费精力"},
+  {text:"尴尬出丑的时候：别人记住你的程度远低于你的想象。",meta:"证据B｜不要浪费精力"},
+  {text:"感觉别人对你完美主义苛求，优先把这看作内心症状，不是外部真实要求。",meta:"证据B｜不要浪费精力"},
+  {text:"愤怒不要靠打沙袋、剧烈奔跑发泄；深呼吸、安静让身体降速效果更好。",meta:"证据A｜不要浪费精力"},
+  {text:"计划任务，写实施意图：几点、在哪、遇到什么就做什么，显著提高完成率。",meta:"证据A｜不要浪费时间"},
+  {text:"项目开工前写下退出条件，冷静时设定止损线。",meta:"证据B｜不要浪费时间"},
+  {text:"做决策只评估未来投入和未来回报，忽略已经沉没的成本。",meta:"证据B｜不要浪费时间"},
+  {text:"预估工期，参考历史同类任务实际耗时，不要凭空乐观估算。",meta:"证据B｜不要浪费时间"},
+  {text:"没有议程的会议尽量不开；可以文字异步沟通就不开会。",meta:"证据B｜不要浪费时间"},
+  {text:"大任务拆解成更小子任务，减少拖延，更容易启动。",meta:"证据B｜不要浪费时间"},
+  {text:"没有外部截止日期的任务，给自己设置明确截止时间。",meta:"证据B｜不要浪费时间"},
+  {text:"看待拖延：大多不是懒惰，是任务令人厌恶、自我效能不足、容易分心。优先改造任务，而非指责自己。",meta:"证据A｜不要浪费时间"},
+  {text:"环境改造优先于意志力；诱惑物放远，减少需要靠硬忍的场景。",meta:"证据B｜不要浪费时间"},
+  {text:"养成习惯不要迷信21天；真实周期从十几天到200多天不等，偶尔中断不会清零进度。",meta:"证据B｜不要浪费时间"},
+  {text:"遭遇重大打击，不要在应激阶段做不可逆决定。",meta:"文档原文｜遭遇重大打击之后"},
+  {text:"报警记得索要受案回执；不予立案可以申请复议复核。情绪激动没有用，依靠文书和法定流程。",meta:"证据C｜法律与财产安全"},
+  {text:"不要随意给别人做担保，担保就要承担还款责任。",meta:"文档原文｜法律与财产安全"},
+  {text:"不要碰兼职洗钱、跑分、传播色情资源，普通兼职也可能踩刑事红线。",meta:"文档原文｜普通人法律红线"},
+  {text:"失业被裁员，不要随便签署主动离职文件，保留证据，主张法定补偿。",meta:"文档原文｜在职离职工伤"},
+  {text:"高危性行为后，记得做HIV检测；疾控中心免费且保密。",meta:"证据A｜不要早死"},
+  {text:"自杀念头冒出，第一时间告诉身边人；把安眠药、农药等危险物品挪远，拨打12356。",meta:"证据B｜不要早死"},
+  {text:"不要幻想自杀被救就万事大吉；很多手段即便活下来，会留下永久脑、肺损伤。",meta:"证据B｜不要早死"},
+  {text:"不要幻想卖肾换钱；黑市卖肾之后绝大多数自述身体变差，负债累累。",meta:"证据A｜不要早死"},
+  {text:"不要捡拾、拆解来路不明的金属放射源；看到三叶草辐射标志远离，拨打110。",meta:"证据A｜不要早死"},
+  {text:"野外冰面不要贸然上去；没有测量厚度，不要上野冰。",meta:"证据C｜不要早死"},
+  {text:"老年人练习平衡、腿部力量；家中浴室加装扶手防滑垫，降低跌倒风险。跌倒是老人伤害死亡头号原因。",meta:"证据A｜不要早死"},
+  {text:"家里常备药：头孢、甲硝唑服药及停药7天内严禁饮酒。",meta:"文档原文｜常备药安全"},
+  {text:"儿童不要自行服用阿司匹林、尼美舒利退烧；2岁以下不要自行喂复方感冒药。",meta:"文档原文｜常备药安全"},
+  {text:"不要相信保健品替代正规药物；检查身体优先选择公立医院。",meta:"文档原文｜反面清单"},
+  {text:"赌博到借钱还债，伴随持续低落，立刻打12356，把支付密码交给家人代管。",meta:"证据B｜不要早死"},
+  {text:"上夜班年限越长，心血管风险越高；条件允许尽量减少长期夜班。",meta:"证据A｜不要慢慢死"},
+  {text:"熬夜之后优先第二天晚上就补觉，不要攒到周末统一补大觉。",meta:"证据B｜不要慢慢死"},
+  {text:"BMI尽量维持20-25区间，东亚人群超重带来的健康风险更加敏感。",meta:"证据A｜不要慢慢死"},
+  {text:"不要为了变美做没有资质医美；填充类项目警惕失明风险。",meta:"文档原文｜别为外形搞坏身体"},
+  {text:"租房看清合同；不要购买农村宅基地房屋，城镇居民只能租赁农房。",meta:"文档原文｜租房买房"},
+  {text:"做网站平台，先搞懂ICP备案、许可要求；不要无证开展视听、支付业务。",meta:"文档原文｜网站平台资质"},
+  {text:"遭遇家暴优先保全自身安全，报警取证，不要寄希望对方良心改变。",meta:"文档原文｜法律财产安全"},
+  {text:"不要把网上的同人、网盘分享资源拿来商用，版权侵权风险存在。",meta:"文档原文｜法律红线"},
+  {text:"程序员接单写外挂、爬虫越权抓取、抢票脚本，有刑事法律风险。",meta:"文档原文｜程序员红线"},
+  {text:"创业不要把全部家底押进去；分清认缴出资不等于不用出钱。",meta:"文档原文｜创业做生意"},
+  {text:"生孩子前把补贴、生育保险、证件办理顺序提前梳理一遍。",meta:"文档原文｜怀孕生产"},
+  {text:"不要指望16-8轻断食、吃早餐就能减肥，证据不足。",meta:"文档原文｜反面清单"},
+  {text:"不要迷信高价格体检套餐；优先选择A级证据筛查项目。",meta:"文档原文｜不要浪费钱"}
+];
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function renderList(){
+  const container = document.getElementById("container");
+  const now = new Date();
+  document.getElementById("dateInfo").textContent =
+    now.getFullYear()+"年"+(now.getMonth()+1)+"月"+now.getDate()+"日";
+  container.innerHTML = "";
+  const selected = shuffle(allTips).slice(0,15);
+  selected.forEach((item,idx)=>{
+    const div = document.createElement('div');
+    div.className = "item";
+    div.innerHTML = "<div>"+(idx+1)+". "+item.text+"</div>"+
+                    "<div class='meta'>"+item.meta+"</div>";
+    div.onclick = function(){ copyText(item.text); };
+    container.appendChild(div);
+  });
+}
+
+function copyText(text){
+  const tip = document.getElementById("copyTip");
+  function done(){
+    tip.textContent = "✅ 已复制";
+    setTimeout(function(){ tip.textContent=""; },1200);
+  }
+  function fail(){
+    tip.textContent = "⚠️ 复制失败，请长按选择";
+    setTimeout(function(){ tip.textContent=""; },1500);
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(fail);
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand('copy'); done(); }catch(e){ fail(); }
+    document.body.removeChild(ta);
+  }
+}
+
+window.onload = renderList;
+</script>
+</body>
+</html>
